@@ -28,13 +28,13 @@ public interface ISysCategoryService extends IService<SysCategory> {
      * 添加分类字典
      * @param sysCategory
      */
-	void addSysCategory(SysCategory sysCategory);
+	String addSysCategory(SysCategory sysCategory);
 
     /**
      * 修改分类字典
      * @param sysCategory
      */
-	void updateSysCategory(SysCategory sysCategory);
+	String updateSysCategory(SysCategory sysCategory);
 	
 	/**
      * 根据父级编码加载分类字典的数据

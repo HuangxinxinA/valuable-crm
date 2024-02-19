@@ -20,6 +20,7 @@
 	</parent>
 
 	<properties>
+		<valuable.version>1.0.0</valuable.version>
 		<jeecgboot.version>3.6.2</jeecgboot.version>
 		<java.version>1.8</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -75,7 +76,7 @@
         <module>jeecg-boot-base-core</module>
         <module>jeecg-module-demo</module>
         <module>jeecg-module-system</module>
-    </modules>
+	</modules>
 
 	<repositories>
 		<repository>

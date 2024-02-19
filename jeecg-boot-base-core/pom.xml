@@ -102,6 +102,12 @@
 			<version>${mybatis-plus.version}</version>
 		</dependency>
 
+		<dependency>
+			<groupId>com.github.yulichang</groupId>
+			<artifactId>mybatis-plus-join-boot-starter</artifactId>
+			<version>1.4.10</version>
+		</dependency>
+
 		<!-- druid -->
 		<dependency>
 			<groupId>com.alibaba</groupId>

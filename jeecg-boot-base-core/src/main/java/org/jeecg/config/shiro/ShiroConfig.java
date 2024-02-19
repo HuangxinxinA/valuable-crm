@@ -267,7 +267,6 @@ public class ShiroConfig {
             sentinelManager.setHost(String.join(",", redisProperties.getSentinel().getNodes()));
             sentinelManager.setPassword(redisProperties.getSentinel().getPassword());
             sentinelManager.setDatabase(redisProperties.getDatabase());
-
             return sentinelManager;
         }
         
