@@ -1,4 +1,4 @@
-package org.jeecg.modules.valuable.controller;
+package org.jeecg.modules.valuable.controller.alibaba;
 
 import java.util.*;
 import javax.servlet.http.HttpServletRequest;
@@ -6,6 +6,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.shiro.SecurityUtils;
@@ -19,7 +20,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.jeecg.common.system.vo.LoginUser;
 import org.jeecg.common.util.oConvertUtils;
+import org.jeecg.modules.system.entity.SysLog;
 import org.jeecg.modules.system.entity.SysUser;
+import org.jeecg.modules.system.service.ISysLogService;
 import org.jeecg.modules.system.service.ISysUserService;
 import org.jeecg.modules.valuable.dto.ChengXingChengYiDTO;
 import org.jeecg.modules.valuable.dto.ISVDTO;
@@ -52,6 +55,8 @@ public class ValAlibabaClientController extends JeecgController<ValAlibabaClient
     private IValAlibabaClientService valAlibabaClientService;
     @Autowired
     private ISysUserService userService;
+    @Autowired
+    private ISysLogService logService;
 
     /**
      * 分页列表查询
@@ -94,9 +99,9 @@ public class ValAlibabaClientController extends JeecgController<ValAlibabaClient
     @ApiOperation(value = "阿里客户-业务员-我的客户分页列表查询", notes = "阿里客户-业务员-我的客户分页列表查询")
     @RequestMapping(value = "/listByToken", method = RequestMethod.GET)
     public Result<IPage<ValAlibabaClientVO>> listByToken(ValAlibabaClient valAlibabaClient,
-                                                       @RequestParam(name = "pageNo", defaultValue = "1") Integer pageNo,
-                                                       @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize,
-                                                       HttpServletRequest req) {
+                                                         @RequestParam(name = "pageNo", defaultValue = "1") Integer pageNo,
+                                                         @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize,
+                                                         HttpServletRequest req) {
         //直接获取当前用户
         LoginUser loginUser = (LoginUser) SecurityUtils.getSubject().getPrincipal();
         if (oConvertUtils.isEmpty(loginUser)) {
@@ -105,7 +110,6 @@ public class ValAlibabaClientController extends JeecgController<ValAlibabaClient
         //只查询客户经理是该用户的客户
         QueryWrapper<ValAlibabaClient> queryWrapper = QueryGenerator.initQueryWrapper(valAlibabaClient, req.getParameterMap());
         queryWrapper.eq("manager", loginUser.getId());
-        queryWrapper.eq("is_follow", 1);
         Page<ValAlibabaClient> page = new Page<>(pageNo, pageSize);
         IPage<ValAlibabaClient> pageList = valAlibabaClientService.page(page, queryWrapper);
         List<SysUser> userList = userService.list();
@@ -135,6 +139,7 @@ public class ValAlibabaClientController extends JeecgController<ValAlibabaClient
                                                       HttpServletRequest req) {
         QueryWrapper<ValAlibabaClient> queryWrapper = QueryGenerator.initQueryWrapper(valAlibabaClient, req.getParameterMap());
         queryWrapper.eq("is_public", 1);
+        queryWrapper.eq("is_follow", 0);
         Page<ValAlibabaClient> page = new Page<>(pageNo, pageSize);
         IPage<ValAlibabaClient> pageList = valAlibabaClientService.page(page, queryWrapper);
         return Result.OK(pageList);
@@ -195,6 +200,11 @@ public class ValAlibabaClientController extends JeecgController<ValAlibabaClient
         if (StringUtils.isBlank(valAlibabaClient.getAccount())) {
             return Result.error("客户阿里账号不能为空");
         }
+        //直接获取当前用户
+        LoginUser loginUser = (LoginUser) SecurityUtils.getSubject().getPrincipal();
+        if (oConvertUtils.isEmpty(loginUser)) {
+            return Result.error("请登录系统！");
+        }
         LambdaQueryWrapper<ValAlibabaClient> queryWrapper = new LambdaQueryWrapper();
         queryWrapper.eq(ValAlibabaClient::getAccount, valAlibabaClient.getAccount());
         ValAlibabaClient one = valAlibabaClientService.getOne(queryWrapper);
@@ -203,6 +213,8 @@ public class ValAlibabaClientController extends JeecgController<ValAlibabaClient
         }
         //业务员添加标志
         valAlibabaClient.setIsPrivate(1);
+        valAlibabaClient.setIsFollow(1);
+        valAlibabaClient.setManager(loginUser.getId());
         valAlibabaClientService.save(valAlibabaClient);
         return Result.OK("添加成功！");
     }
@@ -247,7 +259,6 @@ public class ValAlibabaClientController extends JeecgController<ValAlibabaClient
         }
         client.setManager(valAlibabaClient.getManager());
         client.setIsFollow(1);
-        client.setIsPublic(0);
         valAlibabaClientService.updateById(client);
         return Result.OK("添加成功！");
     }
@@ -285,10 +296,9 @@ public class ValAlibabaClientController extends JeecgController<ValAlibabaClient
         if (client == null) {
             return Result.error("客户不存在，请联系管理员");
         }
-        if (client.getIsPrivate() == 1) {
+        if (client.getIsPublic() == 0) {
             return Result.error("该客户非原公海客户，移入失败");
         }
-        client.setIsPublic(1);
         client.setIsFollow(0);
         client.setManager(null);
         valAlibabaClientService.updateById(client);
@@ -394,5 +404,92 @@ public class ValAlibabaClientController extends JeecgController<ValAlibabaClient
             return Result.error("文件名不符合导入格式");
         }
     }
+
+    /**
+     * 概览
+     *
+     * @param req
+     * @return
+     */
+    //@AutoLog(value = "阿里客户-概览")
+    @ApiOperation(value = "阿里客户-概览", notes = "阿里客户-概览")
+    @GetMapping(value = "/overview")
+    public Result<JSONObject> overview(HttpServletRequest req) {
+        //直接获取当前用户
+        LoginUser loginUser = (LoginUser) SecurityUtils.getSubject().getPrincipal();
+        if (oConvertUtils.isEmpty(loginUser)) {
+            return Result.error("请登录系统！");
+        }
+        List<ValAlibabaClient> list = valAlibabaClientService.list();
+        //筛选出未分配的公海客户
+        long publicCount = list.stream().filter(obj -> obj.getIsPublic() == 1 && obj.getIsFollow() == 0).count();
+        //筛选出我的客户
+        long privateCount = list.stream().filter(obj -> obj.getManager().equals(loginUser.getId())).count();
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("publicCount", publicCount);
+        jsonObject.put("privateCount", privateCount);
+        return Result.OK(jsonObject);
+    }
+
+    /**
+     * 客户操作日志-取最新的6条
+     *
+     * @param req
+     * @return
+     */
+    //@AutoLog(value = "阿里客户-概览")
+    @ApiOperation(value = "阿里客户-操作日志查询", notes = "阿里客户-操作日志查询")
+    @GetMapping(value = "/log")
+    public Result<List<JSONObject>> log(HttpServletRequest req) {
+        //查询日志：管理员添加公海客户、管理员将客户移出公海、业务员从公海中添加客户、业务员将客户移入公海、
+        // 业务员新增客户、业务员编辑客户、业务员更新客户跟进信息、业务员删除客户
+        LambdaQueryWrapper<SysLog> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.like(SysLog::getLogContent, "阿里客户");
+        queryWrapper.orderByDesc(SysLog::getCreateTime);
+        queryWrapper.last("limit 10");
+        List<SysLog> list = logService.list(queryWrapper);
+        //查询所有用户的信息
+        List<SysUser> userList = userService.list();
+        //组装操作日志
+        List<JSONObject> result = new ArrayList<>();
+        for (SysLog sysLog : list) {
+            JSONObject jsonObject = new JSONObject();
+            //avatar
+            Optional<SysUser> optional = userList.stream().filter(obj -> obj.getUsername().equals(sysLog.getUserid()))
+                    .findFirst();
+            optional.ifPresent(sysUser -> jsonObject.put("avatar", sysUser.getAvatar()));
+            //name
+            jsonObject.put("name", sysLog.getUsername());
+            //date
+            jsonObject.put("date", sysLog.getCreateTime());
+            //desc
+            if ("阿里客户-管理员-批量添加公海客户".equals(sysLog.getLogContent())) {
+                JSONArray array = JSONArray.parseArray(sysLog.getRequestParam());
+                int count = array.getJSONObject(0).getString("id").split(",").length;
+                jsonObject.put("desc", "添加了" + count + "条公海客户信息");
+            } else if ("阿里客户-管理员-移出公海".equals(sysLog.getLogContent())) {
+                JSONArray array = JSONArray.parseArray(sysLog.getRequestParam());
+                int count = array.getJSONObject(0).getString("id").split(",").length;
+                jsonObject.put("desc", "移出了" + count + "条公海客户信息");
+            } else if ("阿里客户-业务员-加为我的客户".equals(sysLog.getLogContent())) {
+                jsonObject.put("desc", "从公海中添加了客户");
+            } else if ("阿里客户-业务员-移入公海".equals(sysLog.getLogContent())) {
+                jsonObject.put("desc", "将客户移入了公海");
+            } else if ("阿里客户-业务员-添加".equals(sysLog.getLogContent())) {
+                jsonObject.put("desc", "添加了个人客户信息");
+            } else if (sysLog.getLogContent().contains("删除")) {
+                jsonObject.put("desc", "删除了个人客户信息");
+            } else if ("阿里客户-编辑".equals(sysLog.getLogContent())) {
+                jsonObject.put("desc", "编辑了个人客户信息");
+            } else if ("阿里客户跟进信息-添加".equals(sysLog.getLogContent())) {
+                jsonObject.put("desc", "添加了客户跟进信息");
+            } else {
+                continue;
+            }
+            result.add(jsonObject);
+        }
+        return Result.OK(result);
+    }
+
 
 }

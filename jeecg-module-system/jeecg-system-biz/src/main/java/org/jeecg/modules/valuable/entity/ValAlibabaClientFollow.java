@@ -1,9 +1,8 @@
 package org.jeecg.modules.valuable.entity;
 
 import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
 import java.util.Date;
-import java.math.BigDecimal;
+
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -12,24 +11,23 @@ import lombok.Data;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.jeecgframework.poi.excel.annotation.Excel;
-import org.jeecg.common.aspect.annotation.Dict;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
 /**
- * @Description: 客户跟进表
+ * @Description: 阿里客户跟进表
  * @Author: jeecg-boot
  * @Date:   2024-02-18
  * @Version: V1.0
  */
 @Data
-@TableName("val_client_follow")
+@TableName("val_alibaba_client_follow")
 @Accessors(chain = true)
 @EqualsAndHashCode(callSuper = false)
-@ApiModel(value="val_client_follow对象", description="客户跟进表")
-public class ValClientFollow implements Serializable {
+@ApiModel(value="val_alibaba_client_follow对象", description="阿里客户跟进表")
+public class ValAlibabaClientFollow implements Serializable {
     private static final long serialVersionUID = 1L;
 
 	/**主键*/
@@ -57,10 +55,6 @@ public class ValClientFollow implements Serializable {
     @ApiModelProperty(value = "逻辑删除，0-否，1-是")
     @TableLogic
     private Integer delFlag;
-	/**客户类型，1-阿里，2-谷歌*/
-	@Excel(name = "客户类型，1-阿里，2-谷歌", width = 15)
-    @ApiModelProperty(value = "客户类型，1-阿里，2-谷歌")
-    private Integer type;
 	/**客户ID*/
 	@Excel(name = "客户ID", width = 15)
     @ApiModelProperty(value = "客户ID")

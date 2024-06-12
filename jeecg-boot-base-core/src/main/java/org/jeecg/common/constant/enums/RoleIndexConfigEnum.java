@@ -13,7 +13,7 @@ import java.util.List;
 public enum RoleIndexConfigEnum {
 
     /**首页自定义 admin*/
-    ADMIN("admin", "dashboard/Analysis"),
+    ADMIN("admin", "dashboard/workbench"),
     //TEST("test",  "dashboard/IndexChart"),
     /**首页自定义 hr*/
     HR("hr", "dashboard/IndexBdc");

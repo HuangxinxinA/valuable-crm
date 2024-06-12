@@ -147,6 +147,21 @@ public class SysUserController {
         return sysUserService.queryPageList(req, queryWrapper, pageSize, pageNo);
     }
 
+    @RequiresPermissions("system:user:listAll")
+    @RequestMapping(value = "/listUserEmail", method = RequestMethod.GET)
+    public Result<List<JSONObject>> listUserEmail(SysUser user, HttpServletRequest req) {
+        QueryWrapper<SysUser> queryWrapper = QueryGenerator.initQueryWrapper(user, req.getParameterMap());
+        List<SysUser> list = sysUserService.list(queryWrapper);
+        List<JSONObject> result = list.stream().filter(obj -> StringUtils.isNotBlank(obj.getEmail()))
+                .map(obj -> {
+                    JSONObject object = new JSONObject();
+                    object.put("label", obj.getRealname());
+                    object.put("value", obj.getEmail());
+                    return object;
+                }).collect(Collectors.toList());
+        return Result.ok(result);
+    }
+
     @RequiresPermissions("system:user:add")
     @RequestMapping(value = "/add", method = RequestMethod.POST)
     public Result<SysUser> add(@RequestBody JSONObject jsonObject) {
